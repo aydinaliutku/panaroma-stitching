@@ -1,64 +1,40 @@
 # Feature-Based Panorama Stitching
 
-A compact computer-vision pipeline for stitching overlapping images into a panorama. The project implements **normalized DLT homography estimation** and **RANSAC-based outlier rejection**, then uses OpenCV/NumPy for feature extraction, warping, blending, and visualization.
+Stitch overlapping images with OpenCV features and a NumPy implementation of normalized DLT and RANSAC. The pipeline matches consecutive source images and composes their homographies into one canvas.
 
-## Highlights
+![Panorama stitched from three crops of the Falcon 9 launchpad photo](examples/panorama.jpg)
 
-- ORB or SIFT feature extraction
-- Lowe ratio-test feature matching
-- Homography estimation with normalized Direct Linear Transform (DLT)
-- Custom RANSAC loop for robust geometric estimation
-- Perspective warping and feather blending
-- Optional match visualizations for debugging
-- CLI with portable paths; no machine-specific configuration
+The demo stitches three overlapping crops of one photograph. It provides a controlled geometry example with known overlap.
 
-## Project structure
+## Quick start
 
-```text
-panorama-stitching/
-├── src/
-│   └── panorama.py
-├── requirements.txt
-└── README.md
-```
-
-## Installation
+Requires Python 3.10+. In an activated virtual environment:
 
 ```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+python src/panorama.py --input examples/tiles --output outputs/panorama.jpg --save-matches outputs/matches
 ```
 
-## Usage
+The CLI reports inliers for each pair. `--save-matches` writes one visual check per pair. Try `--feature sift` to compare with the default ORB features.
 
-Put overlapping images in one directory, ordered by filename:
+## Algorithm
 
-```text
-data/office/
-├── 01.jpg
-├── 02.jpg
-└── 03.jpg
-```
+1. Read views in filename order and extract keypoints and descriptors.
+2. Use a two-neighbor ratio test to filter tentative feature matches.
+3. Use four-point normalized DLT inside RANSAC, then refit the homography from geometrically consistent matches.
+4. Compose each view's transform into the first image's coordinates and warp the source images.
+5. Build binary coverage masks independently of pixel colors, then feather overlaps and crop to the covered extent.
 
-Then run:
+For your own images, use ordered filenames such as `01.jpg` and `02.jpg`, provide substantial overlap and keep the output outside the input folder. The project assumes that one homography can align each pair. Strong parallax, moving objects and accumulated drift over long sequences can produce visible seams.
+
+## Verify
 
 ```bash
-python src/panorama.py --input data/office --output outputs/office_panorama.jpg --feature orb
+python -m unittest discover -s tests
 ```
 
-Use `--feature sift` for SIFT. Add `--save-matches outputs/matches` to export pairwise match visualizations.
+The tests cover known projective geometry, degenerate correspondences, RANSAC outliers, black-pixel coverage and invalid canvas projections.
 
-## Pipeline
+## Credits
 
-1. Detect local features and descriptors.
-2. Match consecutive image pairs and filter matches with Lowe's ratio test.
-3. Estimate pairwise homographies with custom RANSAC + normalized DLT.
-4. Warp each new image into the current panorama coordinate frame.
-5. Blend overlapping regions with distance-based feather weights.
-6. Crop empty borders and save the final panorama.
-
-## Notes
-
-RANSAC and homography estimation are intentionally implemented explicitly to make the geometry easy to inspect. OpenCV is used for feature detectors, perspective warping, and basic image I/O.
+SpaceX's public-domain DSCOVR launchpad image comes from [scikit-image](https://scikit-image.org/docs/stable/api/skimage.data.html#skimage.data.rocket). The example tiles are crops, and the panorama is a result of running this repository's code. See [LICENSE](LICENSE) for the source code.
