@@ -38,3 +38,5 @@ The tests cover known projective geometry, degenerate correspondences, RANSAC ou
 ## Credits
 
 SpaceX's public-domain DSCOVR launchpad image comes from [scikit-image](https://scikit-image.org/docs/stable/api/skimage.data.html#skimage.data.rocket). The example tiles are crops, and the panorama is a result of running this repository's code. See [LICENSE](LICENSE) for the source code.
+
+CI checks installation, dependency compatibility, unit tests and CLI examples on Python 3.12 for each push and pull request. You can also run it from the Actions tab.
